@@ -27,8 +27,8 @@ public class OrderController {
         return orderService.createOrder(orderItems);
     }
     @PutMapping("/{id}")
-    public BaseResponse updateOrder(@PathVariable Long id, @RequestBody List<CreateOrderRequest> orderItems) {
-        return orderService.updateOrder(id, orderItems);
+    public BaseResponse updateOrder(@PathVariable Long id, @RequestBody List<CreateOrderRequest> orderItems, Order.PaymentStatus newStatus) {
+        return orderService.updateOrder(id, orderItems,newStatus);
     }
 
     @DeleteMapping("/{id}")

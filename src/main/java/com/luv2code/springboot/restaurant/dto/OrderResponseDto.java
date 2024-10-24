@@ -7,6 +7,7 @@ public class OrderResponseDto {
     private Long orderId;
     private Date orderDate;
     private double totalPrice;
+    private String status;
     private List<MenuItemDto> menuItems;
 
     public Long getOrderId() {
@@ -39,5 +40,13 @@ public class OrderResponseDto {
 
     public void setMenuItems(List<MenuItemDto> menuItems) {
         this.menuItems = menuItems;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

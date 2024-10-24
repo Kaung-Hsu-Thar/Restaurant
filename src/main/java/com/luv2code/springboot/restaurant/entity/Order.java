@@ -21,16 +21,23 @@ public class Order {
     @Temporal(TemporalType.TIMESTAMP)
     private Date orderDate;
 
-    private String status; //WAITING_TO_PAY, CANCEL, PAID
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status;
+
+    public enum PaymentStatus {
+        WAITING_TO_PAY, CANCELED, PAID
+    }
 
     public Order(){
 
     }
 
-    public Order(Long id, double totalPrice, Date orderDate) {
+
+    public Order(Long id, double totalPrice, Date orderDate, PaymentStatus status) {
         this.id = id;
         this.totalPrice = totalPrice;
         this.orderDate = orderDate;
+        this.status = status;
     }
 
     public Long getId() {
@@ -57,4 +64,11 @@ public class Order {
         this.orderDate = orderDate;
     }
 
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PaymentStatus status) {
+        this.status = status;
+    }
 }
