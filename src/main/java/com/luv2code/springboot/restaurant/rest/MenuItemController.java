@@ -2,18 +2,15 @@ package com.luv2code.springboot.restaurant.rest;
 
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateMenuItemRequest;
-import com.luv2code.springboot.restaurant.entity.MenuItem;
-import com.luv2code.springboot.restaurant.service.MenuItemService;
+import com.luv2code.springboot.restaurant.service.MenuItemServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/menu-items")
 public class MenuItemController {
     @Autowired
-    private MenuItemService menuItemService;
+    private MenuItemServiceImpl menuItemService;
 
     @GetMapping
     public BaseResponse getAllMenuItems() {

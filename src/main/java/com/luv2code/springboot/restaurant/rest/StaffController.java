@@ -2,7 +2,7 @@ package com.luv2code.springboot.restaurant.rest;
 
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateStaffRequest;
-import com.luv2code.springboot.restaurant.service.StaffService;
+import com.luv2code.springboot.restaurant.service.StaffServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("staffs")
 public class StaffController {
     @Autowired
-    private StaffService staffService;
+    private StaffServiceImpl staffService;
 
     @GetMapping
     public BaseResponse getAllStaff(){
