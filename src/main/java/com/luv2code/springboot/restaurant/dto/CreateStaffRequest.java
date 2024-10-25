@@ -9,7 +9,7 @@ public class CreateStaffRequest {
 
     private String email;
 
-    private int phoneNo;
+    private String phoneNo;
 
     private String position;
 }
