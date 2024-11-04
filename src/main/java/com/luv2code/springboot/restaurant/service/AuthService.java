@@ -4,7 +4,7 @@ import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateAuthRequest;
 import com.luv2code.springboot.restaurant.dto.StaffResponse;
 import com.luv2code.springboot.restaurant.entity.Staff;
-import com.luv2code.springboot.restaurant.repo.StaffRepo; // Assuming you have this repository for database interaction
+import com.luv2code.springboot.restaurant.repo.StaffRepo;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,9 +43,8 @@ public class AuthService {
             return new BaseResponse("404", "User not found", null);
         }
 
-        // Convert roles from Set<Role> to List<String>
         List<String> roleNames = staff.getRoles().stream()
-                .map(role -> role.getName()) // Assuming Role has a method getName() that returns the role name
+                .map(role -> role.getName())
                 .collect(Collectors.toList());
 
         // Create the StaffResponse object with the desired fields
@@ -54,10 +55,14 @@ public class AuthService {
                 staff.getUsername(),
                 staff.getPhoneNo(),
                 staff.getPosition(),
-                roleNames // Pass the List<String> of role names
+                roleNames
         );
-        // Optionally, you can include the token in the response
-        return new BaseResponse("000", "Authentication successful", staffResponse);
+        // Create a response map or object that contains both the token and user details
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("token", token);
+        responseData.put("user", staffResponse);
+
+        return new BaseResponse("000", "Authentication successful", responseData);
     }
 
 

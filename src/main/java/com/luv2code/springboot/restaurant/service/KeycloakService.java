@@ -119,7 +119,7 @@ public class KeycloakService {
             return jsonObject.getString("access_token");
         }
 
-        return null; // Return null if authentication fails
+        return null;
     }
 
 
@@ -196,8 +196,8 @@ public class KeycloakService {
                 JSONObject role = rolesArray.getJSONObject(i);
                 // Create RolePayload from the JSON object
                 RolePayload rolePayload = new RolePayload();
-                rolePayload.setId(role.getString("id"));  // Assuming your RolePayload has an id field
-                rolePayload.setName(role.getString("name")); // Assuming your RolePayload has a name field
+                rolePayload.setId(role.getString("id"));
+                rolePayload.setName(role.getString("name"));
                 roles.add(rolePayload);
             }
             return roles;

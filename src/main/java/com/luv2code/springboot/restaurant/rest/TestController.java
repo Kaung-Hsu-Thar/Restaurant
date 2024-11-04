@@ -32,14 +32,14 @@ public class TestController {
     @PostMapping("/assign-role")
     @PreAuthorize("hasRole('ADMIN')")
     public boolean assignRoles(@RequestParam String userId, @RequestParam List<String> roles) {
-        boolean allSuccess = true; // Track success for all role assignments
+        boolean allSuccess = true;
         for (String roleName : roles) {
             boolean success = keycloakService.assignRoleToUser(userId, roleName);
             if (success) {
                 log.info("Successfully assigned {} role to user with ID: {}", roleName, userId);
             } else {
                 log.warn("Failed to assign {} role to user with ID: {}", roleName, userId);
-                allSuccess = false; // Mark as failed if any role assignment fails
+                allSuccess = false;
             }
         }
         return allSuccess;

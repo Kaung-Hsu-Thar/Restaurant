@@ -4,23 +4,22 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class KeycloakRealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
-
+public class KeycloakRealmRoleConverter implements Converter<Map<String, Object>, Collection<GrantedAuthority>> {
     @Override
-    public Collection<GrantedAuthority> convert(Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("roles");
-
-        if (roles == null) {
-            roles = Collections.emptyList();
+    public Collection<GrantedAuthority> convert(Map<String, Object> realmAccess) {
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        if (realmAccess != null) {
+            List<String> roles = (List<String>) realmAccess.get("roles");
+            for (String role : roles) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())); // Ensure to prefix with "ROLE_"
+            }
+            System.out.println("Assigned Roles: " + roles);
         }
-
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())) // Prefix with ROLE_ if needed
-                .collect(Collectors.toList());
+        return authorities;
     }
 }
+
