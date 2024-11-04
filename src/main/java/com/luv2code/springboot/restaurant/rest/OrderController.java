@@ -3,6 +3,7 @@ package com.luv2code.springboot.restaurant.rest;
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateOrderRequest;
 import com.luv2code.springboot.restaurant.entity.Order;
+import com.luv2code.springboot.restaurant.service.OrderService;
 import com.luv2code.springboot.restaurant.service.OrderServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,7 @@ import java.util.List;
 @RequestMapping("/orders")
 public class OrderController {
     @Autowired
-    private OrderServiceImpl orderService;
+    private OrderService orderService;
 
     @GetMapping
     public BaseResponse getAllOrders() {
