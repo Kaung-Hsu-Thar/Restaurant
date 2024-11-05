@@ -21,7 +21,8 @@ public class Staff {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    private String firstName;
+    private String lastName;
 
     private String email;
 
@@ -45,7 +46,5 @@ public class Staff {
     )
     private Set<Role> roles = new HashSet<>();
 
-    public Object getSomeEntities() {
-        return null;
-    }
+
 }

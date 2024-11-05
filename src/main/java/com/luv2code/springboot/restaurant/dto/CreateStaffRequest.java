@@ -9,7 +9,9 @@ import java.util.List;
 
 public class CreateStaffRequest {
 
-    private String name;
+    private String firstName;
+
+    private String lastName;
 
     private String email;
 

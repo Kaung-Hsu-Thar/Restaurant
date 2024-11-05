@@ -50,7 +50,6 @@ public class AuthService {
         // Create the StaffResponse object with the desired fields
         StaffResponse staffResponse = new StaffResponse(
                 staff.getId(),
-                staff.getName(),
                 staff.getEmail(),
                 staff.getUsername(),
                 staff.getPhoneNo(),

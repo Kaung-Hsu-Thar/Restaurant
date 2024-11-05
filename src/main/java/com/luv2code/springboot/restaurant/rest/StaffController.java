@@ -2,11 +2,16 @@ package com.luv2code.springboot.restaurant.rest;
 
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateStaffRequest;
+import com.luv2code.springboot.restaurant.entity.Staff;
 import com.luv2code.springboot.restaurant.service.StaffService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +28,33 @@ public class StaffController {
         return staffService.getAllStaff();
     }
 
+    @PostMapping("/staffs")
+    public ResponseEntity<BaseResponse> createStaff(@RequestBody CreateStaffRequest createStaffRequest) {
+        // Retrieve the current authenticated user's username
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String createdByUsername = null;
+
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            createdByUsername = userDetails.getUsername(); // This is the logged-in user's username
+        }
+
+        // Call the service to create staff
+        BaseResponse response = staffService.createStaff(createStaffRequest);
+
+        // Return appropriate response
+        if ("000".equals(response.getErrorCode())) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+
+
+
+
+/*
     @PostMapping
     public BaseResponse createStaff(@Valid @RequestBody CreateStaffRequest request,
                                     @AuthenticationPrincipal UserDetails userDetails) {
@@ -31,12 +63,16 @@ public class StaffController {
         return staffService.createStaff(request);
     }
 
+ */
+
     @PutMapping("/{id}")
     public BaseResponse updateStaff(@PathVariable Long id,
                                     @RequestBody CreateStaffRequest request,
                                     @AuthenticationPrincipal UserDetails userDetails) {
         return staffService.updateStaff(id, request);
     }
+
+
 
     @DeleteMapping("/{id}")
     public BaseResponse deleteStaff(@PathVariable Long id,

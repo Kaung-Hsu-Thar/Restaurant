@@ -45,24 +45,28 @@ public class KeycloakService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        String body = "client_id=" + clientId +
-                "&client_secret=" + clientSecret +
-                "&grant_type=password" +
-                "&username=" + adminUsername +
-                "&password=" + adminPassword;
+        String body = String.format("client_id=%s&client_secret=%s&grant_type=password&username=%s&password=%s",
+                clientId, clientSecret, adminUsername, adminPassword);
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, String.class);
 
-        JSONObject jsonObject = new JSONObject(response.getBody());
-        return jsonObject.getString("access_token");
+        return extractAccessToken(response);
     }
 
+    private String extractAccessToken(ResponseEntity<String> response) {
+        if (response.getStatusCode() == HttpStatus.OK) {
+            JSONObject jsonObject = new JSONObject(response.getBody());
+            return jsonObject.getString("access_token");
+        } else {
+            log.error("Failed to retrieve access token, status code: {}", response.getStatusCode());
+            return null;
+        }
+    }
     // Method to get a role by its name
     public RolePayload getByRoleId(String roleName) {
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
-            log.error("Failed to retrieve admin access token");
             return null;
         }
 
@@ -76,29 +80,20 @@ public class KeycloakService {
         try {
             ResponseEntity<List<RolePayload>> response = restTemplate.exchange(rolesUrl, HttpMethod.GET, entity,
                     new ParameterizedTypeReference<List<RolePayload>>() {});
-            // Check if the response is successful
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                List<RolePayload> roles = response.getBody();
-                log.info("Roles retrieved: {}", roles); // Log the retrieved roles for debugging
-
-                // Return the role that matches the given roleName
-                return roles.stream()
-                        .filter(role -> {
-                            boolean matches = role.getName().trim().equalsIgnoreCase(roleName.trim());
-                            log.info("Checking role: {} against {}", role.getName(), roleName); // Log the comparison
-                            return matches;
-                        })
-                        .findFirst()
-                        .orElse(null);
-
-            } else {
-                log.error("Failed to retrieve roles, status code: {}", response.getStatusCode());
-                return null;
-            }
+            return findRoleByName(response.getBody(), roleName);
         } catch (Exception e) {
             log.error("Error retrieving role by name: {}", e.getMessage());
             return null;
         }
+    }
+    private RolePayload findRoleByName(List<RolePayload> roles, String roleName) {
+        if (roles != null) {
+            return roles.stream()
+                    .filter(role -> role.getName().trim().equalsIgnoreCase(roleName.trim()))
+                    .findFirst()
+                    .orElse(null);
+        }
+        return null;
     }
 
     public String authenticate(String username, String password) {
@@ -106,20 +101,13 @@ public class KeycloakService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        String body = "client_id=" + clientId +
-                "&grant_type=password" +
-                "&username=" + username +
-                "&password=" + password;
+        String body = String.format("client_id=%s&grant_type=password&username=%s&password=%s",
+                clientId, username, password);
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, String.class);
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            JSONObject jsonObject = new JSONObject(response.getBody());
-            return jsonObject.getString("access_token");
-        }
-
-        return null;
+        return extractAccessToken(response);
     }
 
 
@@ -127,7 +115,6 @@ public class KeycloakService {
     public boolean isRoleAssignedToUser(String userId, String roleName) {
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
-            log.error("Failed to retrieve admin access token");
             return false;
         }
 
@@ -151,7 +138,11 @@ public class KeycloakService {
     public boolean assignRoleToUser(String userId, String roleName) {
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
-            log.error("Failed to retrieve admin access token");
+            return false;
+        }
+
+        if (!isUserExists(userId, accessToken)) {
+            log.error("User '{}' not found in Keycloak", userId);
             return false;
         }
 
@@ -161,12 +152,29 @@ public class KeycloakService {
             return false;
         }
 
+        return assignRole(userId, rolePayload, accessToken);
+    }
+
+    private boolean isUserExists(String userId, String accessToken) {
+        String userUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        try {
+            ResponseEntity<String> userResponse = restTemplate.exchange(userUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            return userResponse.getStatusCode() == HttpStatus.OK;
+        } catch (Exception e) {
+            log.error("Failed to retrieve user '{}': {}", userId, e.getMessage());
+            return false;
+        }
+    }
+    private boolean assignRole(String userId, RolePayload rolePayload, String accessToken) {
         String roleUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<List<RolePayload>> entity = new HttpEntity<>(List.of(rolePayload), headers);
+
         try {
             ResponseEntity<String> roleResponse = restTemplate.exchange(roleUrl, HttpMethod.POST, entity, String.class);
             return roleResponse.getStatusCode() == HttpStatus.NO_CONTENT;
@@ -175,8 +183,6 @@ public class KeycloakService {
             return false;
         }
     }
-
-
     // Method to get roles assigned to a user
     public List<RolePayload> getRealmRoles(String userId, String accessToken) {
         String rolesUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
@@ -189,29 +195,30 @@ public class KeycloakService {
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(rolesUrl, HttpMethod.GET, entity, String.class);
-            JSONArray rolesArray = new JSONArray(response.getBody());
-            List<RolePayload> roles = new ArrayList<>();
-
-            for (int i = 0; i < rolesArray.length(); i++) {
-                JSONObject role = rolesArray.getJSONObject(i);
-                // Create RolePayload from the JSON object
-                RolePayload rolePayload = new RolePayload();
-                rolePayload.setId(role.getString("id"));
-                rolePayload.setName(role.getString("name"));
-                roles.add(rolePayload);
-            }
-            return roles;
+            return parseRoles(response.getBody());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error retrieving roles: {}", e.getMessage());
             return new ArrayList<>();
         }
+    }
+    private List<RolePayload> parseRoles(String responseBody) {
+        JSONArray rolesArray = new JSONArray(responseBody);
+        List<RolePayload> roles = new ArrayList<>();
+
+        for (int i = 0; i < rolesArray.length(); i++) {
+            JSONObject role = rolesArray.getJSONObject(i);
+            RolePayload rolePayload = new RolePayload();
+            rolePayload.setId(role.getString("id"));
+            rolePayload.setName(role.getString("name"));
+            roles.add(rolePayload);
+        }
+        return roles;
     }
 
 
     // Method to create a user in Keycloak
-    public String createUser(String email, String username, String password) {
+    public String createUser(String email, String username, String password, String firstName, String lastName) {
         String accessToken = getAdminAccessToken();
-
         String url = keycloakUrl + "/admin/realms/" + realm + "/users";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -221,23 +228,33 @@ public class KeycloakService {
         userJson.put("enabled", true);
         userJson.put("username", username);
         userJson.put("email", email);
+        userJson.put("credentials", createCredentials(password));
+        userJson.put("firstName", firstName);
+        userJson.put("lastName", lastName);
 
-        JSONObject credentials = new JSONObject();
-        credentials.put("type", "password");
-        credentials.put("value", password);
-        credentials.put("temporary", false);
-
-        userJson.put("credentials", new JSONArray().put(credentials));
+        //TODO set first name last name
 
         HttpEntity<String> entity = new HttpEntity<>(userJson.toString(), headers);
         ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
-        // Return the user ID from the Location header if successful
-        if (response.getStatusCode() == HttpStatus.CREATED) {
-            return response.getHeaders().getLocation().getPath().split("/")[4];
-        }
-        return null;
+        return response.getStatusCode() == HttpStatus.CREATED
+                ? extractUserIdFromLocation(response)
+                : null;
     }
+
+    private JSONArray createCredentials(String password) {
+        JSONObject credentials = new JSONObject();
+        credentials.put("type", "password");
+        credentials.put("value", password);
+        credentials.put("temporary", false);
+        return new JSONArray().put(credentials);
+    }
+
+    private String extractUserIdFromLocation(ResponseEntity<String> response) {
+        String location = response.getHeaders().getLocation().toString();
+        return location.substring(location.lastIndexOf("/") + 1);
+    }
+
 
     public boolean updateUserDetails(String keycloakUserId, String newEmail, String newUsername) {
         String updateUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId;

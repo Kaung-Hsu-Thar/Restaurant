@@ -18,13 +18,13 @@ public class SecurityConfig {
     private static final String[] AUTH_WHITELIST = {
             "/v2/api-docs", "/swagger-resources", "/swagger-resources/**", "/configuration/ui",
             "/configuration/security", "/swagger-ui.html", "/webjars/**", "/v3/api-docs/**",
-            "/swagger-ui/**", "/public/**", "/login", "/test/**"
+            "/swagger-ui/**", "/public/**", "/auth/login", "/test/**"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/login", "/test/**"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login", "/test/**"))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(AUTH_WHITELIST).permitAll()
                         .requestMatchers("/staffs/**").hasRole("ADMIN")
@@ -44,8 +44,8 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             // Convert Keycloak realm roles to Spring Security GrantedAuthority
             Collection<GrantedAuthority> authorities = new KeycloakRealmRoleConverter().convert(jwt.getClaimAsMap("realm_access"));
-            System.out.println("Extracted Authorities: " + authorities); // For debugging
-            return authorities; // Return extracted authorities
+            System.out.println("Extracted Authorities: " + authorities);
+            return authorities;
         });
         return converter;
     }

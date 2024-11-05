@@ -30,18 +30,14 @@ public class StaffServiceImpl implements StaffService {
         return new BaseResponse("000", "Success", staffRepo.findAll());
     }
 
-    public BaseResponse getStaff(String name) {
-        return new BaseResponse("000", "Success", staffRepo.findByName(name));
-    }
-
     public BaseResponse createStaff(CreateStaffRequest request) {
         // Validate name
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            return new BaseResponse("001", "Name cannot be empty", null);
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            return new BaseResponse("002", "Name cannot be empty", null);
         }
 
         // Validate email
-        if (request.getEmail() == null || !request.getEmail().contains("@") || !request.getEmail().endsWith(".com")) {
+        if (request.getEmail() == null || !request.getEmail().contains("@") || !request.getEmail().contains(".com")) {
             return new BaseResponse("002", "Invalid email.", null);
         }
 
@@ -75,7 +71,7 @@ public class StaffServiceImpl implements StaffService {
         }
 
         // Create Keycloak user account
-        String keycloakUserId = keycloakService.createUser(request.getEmail(), request.getUsername(), request.getPassword());
+        String keycloakUserId = keycloakService.createUser(request.getEmail(), request.getUsername(), request.getPassword(), request.getFirstName(), request.getLastName());
         if (keycloakUserId == null) {
             return new BaseResponse("009", "Failed to create Keycloak account", null);
         }
@@ -88,7 +84,8 @@ public class StaffServiceImpl implements StaffService {
 
         // Create new staff
         Staff staff = new Staff();
-        staff.setName(request.getName());
+        staff.setFirstName(request.getFirstName());
+        staff.setLastName(request.getLastName());
         staff.setEmail(request.getEmail());
         staff.setUsername((request.getUsername()));
         staff.setPhoneNo(request.getPhoneNo());
@@ -110,7 +107,7 @@ public class StaffServiceImpl implements StaffService {
         }
 
         // Validate name
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
             return new BaseResponse("002", "Name cannot be empty", null);
         }
 
@@ -149,7 +146,8 @@ public class StaffServiceImpl implements StaffService {
         boolean isPasswordChanged = request.getPassword() != null && !request.getPassword().isEmpty();
 
         // Update staff details
-        existingStaff.setName(request.getName());
+        existingStaff.setFirstName(request.getFirstName());
+        existingStaff.setLastName(request.getLastName());
         existingStaff.setEmail(request.getEmail());
         existingStaff.setUsername(request.getUsername());
         existingStaff.setPhoneNo(request.getPhoneNo());
