@@ -1,7 +1,5 @@
 package com.luv2code.springboot.restaurant.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luv2code.springboot.restaurant.dto.RolePayload;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;

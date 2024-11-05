@@ -11,7 +11,7 @@ public class StaffResponse {
     private String username;
     private String phoneNo;
     private String position;
-    private List<String> roles; // List of role names
+    private List<String> roles;
 
     // Constructor can be added for convenience
     public StaffResponse(Long id, String email,String username, String phoneNo, String position, List<String> roles) {

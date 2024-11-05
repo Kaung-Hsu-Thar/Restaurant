@@ -50,21 +50,6 @@ public class StaffController {
         }
     }
 
-
-
-
-
-/*
-    @PostMapping
-    public BaseResponse createStaff(@Valid @RequestBody CreateStaffRequest request,
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-        // Log the creation attempt
-        log.info("User {} is attempting to create staff: {} with role: {}", userDetails.getUsername(), request.getName(), request.getRole());
-        return staffService.createStaff(request);
-    }
-
- */
-
     @PutMapping("/{id}")
     public BaseResponse updateStaff(@PathVariable Long id,
                                     @RequestBody CreateStaffRequest request,

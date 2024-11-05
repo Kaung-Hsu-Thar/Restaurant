@@ -6,6 +6,7 @@ import com.luv2code.springboot.restaurant.entity.Role;
 import com.luv2code.springboot.restaurant.entity.Staff;
 import com.luv2code.springboot.restaurant.repo.RoleRepo;
 import com.luv2code.springboot.restaurant.repo.StaffRepo;
+import com.luv2code.springboot.restaurant.repo.StaffRoleRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +23,7 @@ public class StaffServiceImpl implements StaffService {
 
     private final StaffRepo staffRepo;
     private final RoleRepo roleRepo;
+    private final StaffRoleRepo staffRoleRepo;
     private final KeycloakService keycloakService;
 
     
@@ -112,7 +114,7 @@ public class StaffServiceImpl implements StaffService {
         }
 
         // Validate email
-        if (request.getEmail() == null || !request.getEmail().contains("@") || !request.getEmail().endsWith(".com")) {
+        if (request.getEmail() == null || !request.getEmail().contains("@") || !request.getEmail().contains(".com")) {
             return new BaseResponse("003", "Invalid email.", null);
         }
 
@@ -184,9 +186,16 @@ public class StaffServiceImpl implements StaffService {
     }
 
 
-    public void deleteStaff(Long id) {
-        staffRepo.deleteById(id);
+    @Override
+    @Transactional
+    public void deleteStaff(Long staffId) {
+        // First delete any roles associated with the staff member
+        staffRoleRepo.deleteByStaffId(staffId); // Deletes roles linked to the staff ID
+
+        // Now delete the staff member
+        staffRepo.deleteById(staffId); // Deletes the staff member itself
     }
+
 
     @Override
     public Staff getStaffByEmail(String email) {
