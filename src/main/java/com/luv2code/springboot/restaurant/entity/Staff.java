@@ -19,6 +19,7 @@ public class Staff {
     private Long id;
 
     private String firstName;
+
     private String lastName;
 
     private String email;
@@ -55,6 +56,5 @@ public class Staff {
     public int hashCode() {
         return Objects.hash(id);
     }
-
-
+    
 }

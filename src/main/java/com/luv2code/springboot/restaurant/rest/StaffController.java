@@ -2,9 +2,7 @@ package com.luv2code.springboot.restaurant.rest;
 
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateStaffRequest;
-import com.luv2code.springboot.restaurant.entity.Staff;
 import com.luv2code.springboot.restaurant.service.StaffService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
