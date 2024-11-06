@@ -2,6 +2,7 @@ package com.luv2code.springboot.restaurant.rest;
 
 import com.luv2code.springboot.restaurant.dto.BaseResponse;
 import com.luv2code.springboot.restaurant.dto.CreateStaffRequest;
+import com.luv2code.springboot.restaurant.dto.UpdateStaffRequest;
 import com.luv2code.springboot.restaurant.service.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,9 +49,23 @@ public class StaffController {
         }
     }
 
+    // Endpoint to reset password after email verification
+    @PostMapping("/reset-password")
+    public ResponseEntity<BaseResponse> resetPassword(@RequestParam String email,
+                                                      @RequestParam String token,
+                                                      @RequestParam String password) {
+        BaseResponse response = staffService.resetPassword(email, token, password);
+
+        if ("000".equals(response.getErrorCode())) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
     @PutMapping("/{id}")
     public BaseResponse updateStaff(@PathVariable Long id,
-                                    @RequestBody CreateStaffRequest request,
+                                    @RequestBody UpdateStaffRequest request,
                                     @AuthenticationPrincipal UserDetails userDetails) {
         return staffService.updateStaff(id, request);
     }

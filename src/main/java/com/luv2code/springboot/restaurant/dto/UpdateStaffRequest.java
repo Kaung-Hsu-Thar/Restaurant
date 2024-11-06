@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 
-public class CreateStaffRequest {
+public class UpdateStaffRequest {
 
     private String firstName;
 
@@ -18,6 +18,8 @@ public class CreateStaffRequest {
     private String phoneNo;
 
     private String position;
+
+    private String password;
 
     private String role;
 
