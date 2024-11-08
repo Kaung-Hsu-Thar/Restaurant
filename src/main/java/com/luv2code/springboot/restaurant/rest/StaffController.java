@@ -35,7 +35,7 @@ public class StaffController {
 
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            createdByUsername = userDetails.getUsername(); // This is the logged-in user's username
+            createdByUsername = userDetails.getUsername();
         }
 
         // Call the service to create staff

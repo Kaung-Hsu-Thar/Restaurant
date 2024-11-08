@@ -81,8 +81,14 @@ public class StaffServiceImpl implements StaffService {
             return new BaseResponse("005", "Failed to create user in Keycloak", null);
         }
 
+        // Retrieve the admin access token
+        String accessToken = keycloakService.getAdminAccessToken();
+        if (accessToken == null) {
+            return new BaseResponse("009", "Failed to retrieve access token", null);
+        }
+
         // Assign role to the user in Keycloak
-        boolean roleAssigned = keycloakService.assignRoleToUser(keycloakUserId, request.getRole());
+        boolean roleAssigned = keycloakService.assignRoleToUser(keycloakUserId, request.getRole(), accessToken);
         if (!roleAssigned) {
             return new BaseResponse("010", "Failed to assign role in Keycloak", null);
         }
@@ -168,6 +174,18 @@ public class StaffServiceImpl implements StaffService {
             return new BaseResponse("007", "Role not found", null);
         }
 
+        // Retrieve Keycloak user ID
+        String keycloakUserId = keycloakService.findUserByUsername(existingStaffOpt.get().getUsername());
+        if (keycloakUserId == null) {
+            return new BaseResponse("008", "Staff not found in Keycloak", null);
+        }
+
+        // Update the user in Keycloak using the updateUser method
+        boolean updateSuccess = keycloakService.updateUser(keycloakUserId, request);
+        if (!updateSuccess) {
+            return new BaseResponse("009", "Failed to update staff details in Keycloak", null);
+        }
+
         // Update existing staff
         Staff existingStaff = existingStaffOpt.get();
 
@@ -184,7 +202,20 @@ public class StaffServiceImpl implements StaffService {
         existingStaff.getRoles().add(roleOpt.get());
 
         // Save updated staff to the database
-        return new BaseResponse("000", "Success", staffRepo.save(existingStaff));
+        Staff updatedStaff = staffRepo.save(existingStaff);
+
+        String accessToken = keycloakService.getAdminAccessToken();
+
+        // If password is updated, update in Keycloak as well
+        if (request.getPassword() != null) {
+            boolean passwordUpdated = keycloakService.updateUserPassword(keycloakUserId, request.getPassword(), accessToken);
+            if (!passwordUpdated) {
+                return new BaseResponse("009", "Failed to update password in Keycloak", null);
+            }
+        }
+
+        // Return success response
+        return new BaseResponse("000", "Success", existingStaff);
     }
 
 

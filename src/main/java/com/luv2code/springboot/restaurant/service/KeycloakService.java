@@ -1,6 +1,7 @@
 package com.luv2code.springboot.restaurant.service;
 
 import com.luv2code.springboot.restaurant.dto.RolePayload;
+import com.luv2code.springboot.restaurant.dto.UpdateStaffRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,7 +42,7 @@ public class KeycloakService {
     private RestTemplate restTemplate = new RestTemplate();
 
     // Method to get the admin access token
-    private String getAdminAccessToken() {
+    String getAdminAccessToken() {
         String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -112,8 +113,7 @@ public class KeycloakService {
         return extractAccessToken(response);
     }
 
-   public boolean assignRoleToUser(String userId, String roleName) {
-        String accessToken = getAdminAccessToken();
+   public boolean assignRoleToUser(String userId, String roleName, String accessToken) {
         if (accessToken == null) {
             return false;
         }
@@ -211,8 +211,8 @@ public class KeycloakService {
 
         JSONObject credentials = new JSONObject();
         credentials.put("type", "password");
-        credentials.put("value", newPassword);  // Set new password
-        credentials.put("temporary", false);  // Make it permanent
+        credentials.put("value", newPassword);
+        credentials.put("temporary", false);
 
         HttpEntity<String> entity = new HttpEntity<>(credentials.toString(), headers);
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
@@ -225,22 +225,66 @@ public class KeycloakService {
         }
     }
 
-    public boolean updateUserDetails(String keycloakUserId, String newEmail, String newUsername) {
+    public String findUserByUsername(String username) {
+        String accessToken = getAdminAccessToken();
+        if (accessToken == null) {
+            return null;
+        }
+
+        String searchUrl = keycloakUrl + "/admin/realms/" + realm + "/users?username=" + username;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(searchUrl, HttpMethod.GET, entity, String.class);
+            JSONArray users = new JSONArray(response.getBody());
+
+            if (users.length() > 0) {
+                return users.getJSONObject(0).getString("id");
+            } else {
+                log.error("User '{}' not found in Keycloak", username);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Failed to find user by username '{}': {}", username, e.getMessage());
+            return null;
+        }
+    }
+
+    // Full update method to handle updating all attributes including role and password
+    public boolean updateUser(String keycloakUserId, UpdateStaffRequest request) {
+        String accessToken = getAdminAccessToken();
+        if (accessToken == null) {
+            log.error("Failed to obtain access token for updating user details.");
+            return false;
+        }
+
+        boolean userUpdated = updateUserDetails(keycloakUserId, request, accessToken);
+        boolean roleAssigned = assignRoleToUser(keycloakUserId, request.getRole(), accessToken);
+
+        return userUpdated && roleAssigned;
+    }
+
+    public boolean updateUserDetails(String keycloakUserId, UpdateStaffRequest request, String accessToken) {
         String updateUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId;
 
-        // Create a JSON body with the new email and username
+        // Create JSON body with details from UpdateStaffRequest DTO
         JSONObject body = new JSONObject();
-        body.put("email", newEmail);
-        body.put("username", newUsername);
+        body.put("firstName", request.getFirstName());
+        body.put("lastName", request.getLastName());
+        body.put("email", request.getEmail());
+        body.put("username", request.getUsername());
+        body.put("attributes", new JSONObject().put("phoneNo", request.getPhoneNo()).put("position", request.getPosition()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(getAdminAccessToken());
+        headers.setBearerAuth(accessToken);
 
         HttpEntity<String> entity = new HttpEntity<>(body.toString(), headers);
 
         try {
-            // Make the PUT request to update the user
             ResponseEntity<String> response = restTemplate.exchange(updateUrl, HttpMethod.PUT, entity, String.class);
             return response.getStatusCode() == HttpStatus.NO_CONTENT;
         } catch (Exception e) {
@@ -249,10 +293,10 @@ public class KeycloakService {
         }
     }
 
-    public boolean updateUserPassword(String keycloakUserId, String newPassword) {
-        String updateUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId + "/reset-password";
+    boolean updateUserPassword(String keycloakUserId, String newPassword, String accessToken) {
+        String passwordUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId + "/reset-password";
 
-        // Create a JSON body with the new password
+        // Create JSON body for new password
         JSONObject body = new JSONObject();
         body.put("type", "password");
         body.put("value", newPassword);
@@ -260,26 +304,17 @@ public class KeycloakService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(getAdminAccessToken());
+        headers.setBearerAuth(accessToken);
 
         HttpEntity<String> entity = new HttpEntity<>(body.toString(), headers);
 
         try {
-            // Make the PUT request to update the user password
-            ResponseEntity<String> response = restTemplate.exchange(updateUrl, HttpMethod.PUT, entity, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(passwordUrl, HttpMethod.PUT, entity, String.class);
             return response.getStatusCode() == HttpStatus.NO_CONTENT;
         } catch (Exception e) {
             log.error("Failed to update user password: {}", e.getMessage());
             return false;
         }
-    }
-
-    public Object getClientId() {
-        return clientId;
-    }
-
-    public Object getClientSecret() {
-        return clientSecret;
     }
 }
 
