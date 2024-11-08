@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    private final StaffService staffService; // To fetch staff details
-    private final KeycloakService keycloakService; // To interact with Keycloak
-    private final StaffRepo staffRepo; // Repository for staff entity
+    private final StaffService staffService;
+    private final KeycloakService keycloakService;
+    private final StaffRepo staffRepo;
 
     @Value("${keycloak.auth-server-url}")
     private String keycloakUrl;

@@ -4,15 +4,14 @@ import com.luv2code.springboot.restaurant.dto.RolePayload;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -36,10 +35,13 @@ public class KeycloakService {
     @Value("${keycloak.password}")
     private String adminPassword;
 
+    @Autowired
+    private EmailService emailService;
+
     private RestTemplate restTemplate = new RestTemplate();
 
-    // Method to get admin access token for Keycloak operations
-    public String getAdminAccessToken() {
+    // Method to get the admin access token
+    private String getAdminAccessToken() {
         String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -53,6 +55,7 @@ public class KeycloakService {
         return extractAccessToken(response);
     }
 
+    // Helper method to extract access token
     private String extractAccessToken(ResponseEntity<String> response) {
         if (response.getStatusCode() == HttpStatus.OK) {
             JSONObject jsonObject = new JSONObject(response.getBody());
@@ -109,32 +112,7 @@ public class KeycloakService {
         return extractAccessToken(response);
     }
 
-
-    // Method to check if a role is assigned to a user
-    public boolean isRoleAssignedToUser(String userId, String roleName) {
-        String accessToken = getAdminAccessToken();
-        if (accessToken == null) {
-            return false;
-        }
-
-        String rolesUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<List<RolePayload>> response = restTemplate.exchange(rolesUrl, HttpMethod.GET, entity,
-                    new ParameterizedTypeReference<List<RolePayload>>() {});
-            return response.getBody().stream().anyMatch(role -> role.getName().equals(roleName));
-        } catch (Exception e) {
-            log.error("Error checking role assignment: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean assignRoleToUser(String userId, String roleName) {
+   public boolean assignRoleToUser(String userId, String roleName) {
         String accessToken = getAdminAccessToken();
         if (accessToken == null) {
             return false;
@@ -182,42 +160,9 @@ public class KeycloakService {
             return false;
         }
     }
-    // Method to get roles assigned to a user
-    public List<RolePayload> getRealmRoles(String userId, String accessToken) {
-        String rolesUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(rolesUrl, HttpMethod.GET, entity, String.class);
-            return parseRoles(response.getBody());
-        } catch (Exception e) {
-            log.error("Error retrieving roles: {}", e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-    private List<RolePayload> parseRoles(String responseBody) {
-        JSONArray rolesArray = new JSONArray(responseBody);
-        List<RolePayload> roles = new ArrayList<>();
-
-        for (int i = 0; i < rolesArray.length(); i++) {
-            JSONObject role = rolesArray.getJSONObject(i);
-            RolePayload rolePayload = new RolePayload();
-            rolePayload.setId(role.getString("id"));
-            rolePayload.setName(role.getString("name"));
-            roles.add(rolePayload);
-        }
-        return roles;
-    }
-
-
-
-    // Passwordless User Creation: create user without password, then send reset link
-    public String createPasswordlessUser(String email, String username, String firstName, String lastName) {
+    // Method to create passwordless user
+    public String createUser(String email, String username, String firstName, String lastName, String password) {
         String accessToken = getAdminAccessToken();
         if (accessToken == null) return null;
 
@@ -232,31 +177,30 @@ public class KeycloakService {
         userJson.put("email", email);
         userJson.put("firstName", firstName);
         userJson.put("lastName", lastName);
-        userJson.put("attributes", new JSONObject().put("resetToken", UUID.randomUUID().toString()));
+
+        // Add password to the Keycloak user creation JSON
+        JSONObject credentials = new JSONObject();
+        credentials.put("type", "password");
+        credentials.put("value", password);
+        credentials.put("temporary", false);
+
+        userJson.put("credentials", List.of(credentials));
 
         HttpEntity<String> entity = new HttpEntity<>(userJson.toString(), headers);
         ResponseEntity<String> response = restTemplate.postForEntity(userUrl, entity, String.class);
 
         if (response.getStatusCode() == HttpStatus.CREATED) {
-            String userId = extractUserIdFromLocation(response);
-            String resetToken = userJson.getJSONObject("attributes").getString("resetToken");
-            sendResetLink(email, resetToken);  // Make sure this sends the email with the reset link.
-            return userId;
+            return extractUserIdFromLocation(response);
         } else {
             log.error("Failed to create Keycloak user, status code: {}", response.getStatusCode());
             return null;
         }
     }
 
+    // Extract userId from the Location header in the response
     private String extractUserIdFromLocation(ResponseEntity<String> response) {
         String location = response.getHeaders().getLocation().toString();
         return location.substring(location.lastIndexOf("/") + 1);
-    }
-
-    // Send a reset password link for setting the initial password
-    public void sendResetLink(String email, String token) {
-        String resetUrl = "https://your-app.com/reset-password?token=" + token;
-        log.info("Reset link: {}", resetUrl);  // Replace with email service to actually send the link
     }
 
     public boolean resetUserPassword(String userId, String newPassword) {

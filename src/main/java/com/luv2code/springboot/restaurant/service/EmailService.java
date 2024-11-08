@@ -1,31 +1,55 @@
 package com.luv2code.springboot.restaurant.service;
 
-import org.springframework.mail.SimpleMailMessage;
+import com.luv2code.springboot.restaurant.dto.BaseResponse;
+import com.luv2code.springboot.restaurant.dto.EmailDto;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final JavaMailSender javaMailSender;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
     public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+        this.javaMailSender = mailSender;
     }
 
-    public void sendPasswordResetEmail(String recipientEmail, String token) {
-        // Generate password reset link
-        String resetLink = "https://localhost:8081/reset-password?token=" + token;
-        String subject = "Reset Your Password";
-        String message = "Click the link to reset your password: " + resetLink;
+    public BaseResponse sendPasswordCreateEmail(EmailDto emailDto, String password) {
+        String subject = "Welcome to Charlie's Restaurant - Your Account Information";
 
-        // Set up email message
-        SimpleMailMessage email = new SimpleMailMessage();
-        email.setTo(recipientEmail);
-        email.setSubject(subject);
-        email.setText(message);
+        // Compose the email message including the generated password
+        String message = "Hello,\n\nYour account has been successfully created! Here are your login details:\n\n" +
+                "Username: " + emailDto.getRecipientEmail() + "\n" +
+                "Temporary Password: " + password + "\n\n" +
+                "Please log in and change your password at your earliest convenience.\n\n" +
+                "Regards,\nCharlie's Restaurant Team";
 
-        // Send email
-        mailSender.send(email);
+        try {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            mimeMessageHelper.setFrom(fromEmail);
+            mimeMessageHelper.setTo(emailDto.getRecipientEmail());
+            mimeMessageHelper.setSubject(subject);
+            mimeMessageHelper.setText(message, false);  // `false` indicates plain text
+
+            javaMailSender.send(mimeMessage);
+
+            log.info("Password email sent successfully to: {}", emailDto.getRecipientEmail());
+            return new BaseResponse("000", "Email sent successfully", emailDto.getRecipientEmail());
+        } catch (Exception e) {
+            log.error("Error while sending password email: {}", e.getMessage());
+            return new BaseResponse("999", "Failed to send email", null);
+        }
     }
+
+
 }

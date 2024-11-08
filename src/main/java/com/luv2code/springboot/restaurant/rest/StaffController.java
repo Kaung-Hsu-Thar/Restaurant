@@ -49,28 +49,12 @@ public class StaffController {
         }
     }
 
-    // Endpoint to reset password after email verification
-    @PostMapping("/reset-password")
-    public ResponseEntity<BaseResponse> resetPassword(@RequestParam String email,
-                                                      @RequestParam String token,
-                                                      @RequestParam String password) {
-        BaseResponse response = staffService.resetPassword(email, token, password);
-
-        if ("000".equals(response.getErrorCode())) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
     @PutMapping("/{id}")
     public BaseResponse updateStaff(@PathVariable Long id,
                                     @RequestBody UpdateStaffRequest request,
                                     @AuthenticationPrincipal UserDetails userDetails) {
         return staffService.updateStaff(id, request);
     }
-
-
 
     @DeleteMapping("/{id}")
     public BaseResponse deleteStaff(@PathVariable Long id,
