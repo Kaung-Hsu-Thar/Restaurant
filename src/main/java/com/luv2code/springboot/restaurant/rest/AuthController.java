@@ -41,7 +41,6 @@ public class AuthController {
         return response;
     }
 
-    // DTO to structure the login response
     @Data
     public static class AuthResponse {
         private String token;
